@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active,
+body.chassis-cursor-active * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                history.replaceState(null, '', newHash);
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARC-Gurren — Team Dai-Gurren</title>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" />
+
+    <style>
+      :root {
+        --bg-deep: #05080f;
+        --bg-mid: #0a1628;
+        --bg-surface: rgba(15, 30, 60, 0.6);
+        --text-primary: #e8edf5;
+        --text-secondary: rgba(200, 215, 240, 0.7);
+        --accent-cyan: #00d4ff;
+        --accent-blue: #4d7fff;
+        --accent-purple: #a855f7;
+        --accent-gold: #fbbf24;
+        --accent-red: #ff3b5c;
+        --glass: rgba(15, 25, 50, 0.65);
+        --glass-border: rgba(100, 180, 255, 0.12);
+        --glass-glow: rgba(0, 212, 255, 0.06);
+        --font-display: 'Orbitron', sans-serif;
+        --font-body: 'Rajdhani', sans-serif;
+        --font-detail: 'Inter', sans-serif;
+        --nav-dot-active-color: var(--accent-cyan);
+        --nav-dot-color: rgba(100, 180, 255, 0.3);
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--bg-deep);
+        color: var(--text-primary);
+      }
+
+      h1, h2, h3 {
+        font-family: var(--font-display);
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: 0.02em;
+      }
+
+      p, li {
+        font-family: var(--font-body);
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-weight: 400;
+      }
+
+      .slide {
+        padding: 80px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(ellipse at 50% 0%, rgba(10, 30, 70, 0.5) 0%, var(--bg-deep) 70%);
+        z-index: 1;
+      }
+
+      #stars-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.4;
+      }
+
+      .glass {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+
+      .eyebrow {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+      }
+
+      .glow-text {
+        text-shadow: 0 0 40px rgba(0, 212, 255, 0.3), 0 0 80px rgba(0, 212, 255, 0.1);
+      }
+
+      /* ========== SLIDE 1: PORTADA ========== */
+      .title-slide {
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background:
+          radial-gradient(ellipse at 50% 30%, rgba(0, 100, 200, 0.12) 0%, transparent 60%),
+          radial-gradient(ellipse at 80% 80%, rgba(100, 0, 200, 0.08) 0%, transparent 50%),
+          radial-gradient(ellipse at 20% 90%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
+          var(--bg-deep);
+      }
+
+      .title-slide h1 {
+        font-size: 130px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 50%, var(--accent-blue) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 16px;
+      }
+
+      .title-slide .subtitle {
+        font-family: var(--font-body);
+        font-size: 30px;
+        color: var(--text-secondary);
+        font-weight: 300;
+        letter-spacing: 0.15em;
+        margin-bottom: 60px;
+      }
+
+      .title-slide .crew {
+        font-family: var(--font-detail);
+        font-size: 20px;
+        color: var(--text-primary);
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+      }
+
+      .title-slide .meta {
+        font-family: var(--font-detail);
+        font-size: 16px;
+        color: var(--text-secondary);
+        font-weight: 300;
+      }
+
+      .title-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 700px;
+        height: 700px;
+        border: 1px solid rgba(0, 212, 255, 0.08);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: ring-rotate 40s linear infinite;
+      }
+
+      .title-ring::after {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: var(--accent-cyan);
+        border-radius: 50%;
+        box-shadow: 0 0 20px var(--accent-cyan);
+      }
+
+      @keyframes ring-rotate {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+
+      .title-ring-2 {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 900px;
+        height: 900px;
+        border: 1px solid rgba(100, 127, 255, 0.05);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: ring-rotate 60s linear infinite reverse;
+      }
+
+      /* ========== SLIDE 2: DIA FINAL ========== */
+      .story-slide {
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background:
+          radial-gradient(ellipse at 50% 50%, rgba(255, 30, 30, 0.08) 0%, transparent 50%),
+          radial-gradient(ellipse at 50% 100%, rgba(200, 50, 0, 0.06) 0%, transparent 40%),
+          var(--bg-deep);
+      }
+
+      .story-slide h2 {
+        font-size: 90px;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        background: linear-gradient(135deg, #ffffff 0%, var(--accent-red) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 40px;
+      }
+
+      .story-slide p {
+        font-size: 32px;
+        color: rgba(255,255,255,0.75);
+        max-width: 1050px;
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      .story-pulse {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 800px;
+        height: 800px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 59, 92, 0.1), transparent 60%);
+        pointer-events: none;
+        animation: threat-pulse 4s ease-in-out infinite;
+      }
+
+      @keyframes threat-pulse {
+        0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(0.85); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      }
+
+      /* ========== SLIDE 3: PROFESIONALES ========== */
+      .prof-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .prof-card {
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .prof-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), transparent);
+        opacity: 0.6;
+      }
+
+      .prof-card h3 {
+        font-family: var(--font-body);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 8px;
+      }
+
+      .prof-card p {
+        font-size: 16px;
+        line-height: 1.4;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      /* ========== SLIDE 4: NAVE ========== */
+      .nave-slide {
+        padding: 50px 80px;
+        justify-content: flex-start;
+        background:
+          radial-gradient(ellipse at 50% 60%, rgba(0, 100, 200, 0.08) 0%, transparent 50%),
+          var(--bg-deep);
+      }
+
+      .nave-slide .ship-img {
+        width: 100%;
+        max-height: 500px;
+        object-fit: cover;
+        border-radius: 16px;
+        margin-top: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(0, 150, 255, 0.08);
+        border: 1px solid rgba(100, 180, 255, 0.1);
+      }
+
+      .nave-features {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .nave-feat {
+        flex: 1;
+        padding: 14px;
+        text-align: center;
+        font-family: var(--font-body);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--accent-cyan);
+        border-radius: 10px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+      }
+
+      /* ========== SLIDE 5: BANDERA ========== */
+      .flag-slide {
+        justify-content: center;
+        align-items: center;
+        background:
+          radial-gradient(ellipse at 30% 50%, rgba(255, 50, 50, 0.06) 0%, transparent 40%),
+          radial-gradient(ellipse at 70% 50%, rgba(168, 85, 247, 0.06) 0%, transparent 40%),
+          var(--bg-deep);
+      }
+
+      .flag-content {
+        display: flex;
+        gap: 60px;
+        align-items: center;
+        margin-top: 30px;
+      }
+
+      .flag-img {
+        width: 520px;
+        height: auto;
+        border-radius: 12px;
+        flex-shrink: 0;
+        box-shadow: 0 10px 50px rgba(255, 50, 50, 0.2);
+      }
+
+      .flag-text h3 {
+        font-family: var(--font-display);
+        font-size: 38px;
+        color: var(--text-primary);
+        margin-bottom: 20px;
+      }
+
+      .flag-text p {
+        font-size: 26px;
+        line-height: 1.65;
+        color: var(--text-secondary);
+        max-width: 650px;
+      }
+
+      .flag-text strong {
+        color: var(--accent-red);
+      }
+
+      /* ========== SLIDE 6: CULTURAS ========== */
+      .culture-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 30px;
+      }
+
+      .culture-section {
+        padding: 30px;
+      }
+
+      .culture-section h3 {
+        font-family: var(--font-display);
+        font-size: 24px;
+        color: var(--accent-gold);
+        margin-bottom: 18px;
+        letter-spacing: 0.05em;
+      }
+
+      .culture-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .culture-list li {
+        font-size: 22px;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .culture-list li:last-child { border-bottom: none; }
+
+      .culture-list li span {
+        color: var(--text-secondary);
+        font-weight: 300;
+        font-size: 17px;
+        display: block;
+        margin-top: 3px;
+      }
+
+      /* ========== SLIDE 7: DEFENSA ========== */
+      .defense-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .defense-card {
+        padding: 24px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .defense-card .icon {
+        font-size: 38px;
+        margin-bottom: 10px;
+      }
+
+      .defense-card h3 {
+        font-family: var(--font-body);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 8px;
+      }
+
+      .defense-card p {
+        font-size: 17px;
+        margin: 0;
+        line-height: 1.4;
+      }
+
+      /* ========== SLIDE 8: NUCLEO ========== */
+      .nucleo-slide {
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background:
+          radial-gradient(ellipse at 50% 50%, rgba(0, 150, 255, 0.1) 0%, transparent 40%),
+          radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 60%),
+          var(--bg-deep);
+      }
+
+      .nucleo-orb {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 40%, rgba(0, 212, 255, 0.15), rgba(77, 127, 255, 0.05), transparent 60%);
+        pointer-events: none;
+        animation: orb-breathe 5s ease-in-out infinite;
+        box-shadow: 0 0 120px rgba(0, 212, 255, 0.1);
+      }
+
+      @keyframes orb-breathe {
+        0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.92); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+      }
+
+      .nucleo-slide h2 {
+        font-size: 72px;
+        margin-bottom: 30px;
+        position: relative;
+        z-index: 1;
+        background: linear-gradient(135deg, #ffffff, var(--accent-cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nucleo-slide p {
+        font-size: 28px;
+        max-width: 1100px;
+        color: var(--text-secondary);
+        line-height: 1.65;
+        position: relative;
+        z-index: 1;
+      }
+
+      .nucleo-slide strong {
+        color: var(--accent-cyan);
+        font-weight: 600;
+      }
+
+      .nucleo-slide .gold-text {
+        color: var(--accent-gold);
+        font-weight: 700;
+      }
+
+      /* ========== SLIDE 9: PLAN DE VIAJE ========== */
+      .plan-phases {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .phase-card {
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .phase-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+      }
+
+      .phase-num {
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        margin-bottom: 10px;
+      }
+
+      .phase-card h3 {
+        font-family: var(--font-body);
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .phase-card p {
+        font-size: 17px;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      /* ========== SLIDE 10: AGUA ========== */
+      .water-slide {
+        justify-content: center;
+        align-items: center;
+        background:
+          radial-gradient(ellipse at 25% 50%, rgba(0, 100, 255, 0.1) 0%, transparent 40%),
+          var(--bg-deep);
+      }
+
+      .water-content {
+        display: flex;
+        gap: 60px;
+        align-items: center;
+        max-width: 1600px;
+      }
+
+      .water-orb {
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, rgba(100, 200, 255, 0.4), rgba(0, 100, 200, 0.3), rgba(0, 50, 150, 0.6));
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 80px rgba(0, 150, 255, 0.2), inset 0 -20px 40px rgba(0, 50, 100, 0.3);
+        animation: water-float 6s ease-in-out infinite;
+        position: relative;
+      }
+
+      .water-orb::after {
+        content: '';
+        position: absolute;
+        top: 15%;
+        left: 25%;
+        width: 80px;
+        height: 40px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 50%;
+        filter: blur(8px);
+      }
+
+      @keyframes water-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-12px); }
+      }
+
+      .water-orb span {
+        color: white;
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+        padding: 40px;
+        line-height: 1.5;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .water-text h2 {
+        font-size: 56px;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+      }
+
+      .water-text p {
+        font-size: 26px;
+        line-height: 1.6;
+        max-width: 700px;
+      }
+
+      .water-text strong {
+        color: var(--accent-cyan);
+        font-weight: 600;
+      }
+
+      /* ========== SLIDE 11: OBJETOS ========== */
+      .objects-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .member-card {
+        padding: 18px;
+      }
+
+      .member-card h3 {
+        font-family: var(--font-body);
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+      }
+
+      .member-card ol {
+        padding-left: 16px;
+        margin: 0;
+      }
+
+      .member-card ol li {
+        font-family: var(--font-detail);
+        font-size: 14.5px;
+        line-height: 1.4;
+        padding: 2px 0;
+        color: var(--text-secondary);
+      }
+
+      /* ========== SLIDE 12: POBLACION ========== */
+      .pop-slide {
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      .pop-rules {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 30px;
+      }
+
+      .pop-rule {
+        padding: 28px 20px;
+        text-align: center;
+      }
+
+      .pop-rule .icon { font-size: 36px; margin-bottom: 12px; }
+      .pop-rule h3 {
+        font-family: var(--font-body);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        margin-bottom: 10px;
+      }
+      .pop-rule p { font-size: 17px; margin: 0; line-height: 1.4; }
+
+      /* ========== SLIDE 13: TERRANOVA ========== */
+      .final-slide {
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background:
+          radial-gradient(ellipse at 50% 80%, rgba(0, 200, 100, 0.08) 0%, transparent 40%),
+          radial-gradient(ellipse at 50% 20%, rgba(0, 100, 200, 0.1) 0%, transparent 40%),
+          linear-gradient(180deg, var(--bg-deep) 0%, #071525 50%, #0a2040 100%);
+      }
+
+      .final-slide h2 {
+        font-size: 36px;
+        font-weight: 400;
+        color: var(--text-secondary);
+        letter-spacing: 0.15em;
+        margin-bottom: 10px;
+      }
+
+      .final-slide h1 {
+        font-size: 120px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffffff 0%, #4dff88 50%, var(--accent-cyan) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 30px;
+      }
+
+      .final-slide p {
+        font-size: 26px;
+        color: rgba(255,255,255,0.7);
+        max-width: 950px;
+        line-height: 1.65;
+      }
+
+      .final-slide .team-name {
+        font-family: var(--font-display);
+        font-size: 24px;
+        color: var(--accent-gold);
+        font-weight: 700;
+        margin-top: 50px;
+        letter-spacing: 0.12em;
+        text-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+      }
+
+      .planet-glow {
+        position: absolute;
+        bottom: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 800px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(77, 255, 136, 0.08), transparent 60%);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body data-nav="bottom">
+    <canvas id="stars-canvas"></canvas>
+
+    <!-- SLIDE 1: PORTADA -->
+    <section class="slide title-slide">
+      <div class="title-ring"></div>
+      <div class="title-ring-2"></div>
+      <span class="eyebrow reveal d1">Misión de Supervivencia Interestelar</span>
+      <h1 class="reveal d2">ARC-GURREN</h1>
+      <p class="subtitle reveal d3">Team Dai-Gurren</p>
+      <p class="crew reveal d4">Mathias Constantines &nbsp;·&nbsp; Juan Parraga &nbsp;·&nbsp; Elias Rodriguez &nbsp;·&nbsp; Alejandro Infante</p>
+      <p class="meta reveal d5">12 de junio de 2026</p>
+    </section>
+
+    <!-- SLIDE 2: EL DÍA FINAL -->
+    <section class="slide story-slide">
+      <div class="story-pulse"></div>
+      <span class="eyebrow reveal d1" style="color: var(--accent-red);">Código Rojo</span>
+      <h2 class="reveal d2">EL DÍA FINAL</h2>
+      <p class="reveal d3">Llegó el fin de la humanidad. Más del 99% de la población ha perecido. Solo quedan <strong style="color: var(--accent-red);">60 personas</strong> seleccionadas, profesionales que llevarán a la especie humana hacia un nuevo futuro entre las estrellas.</p>
+    </section>
+
+    <!-- SLIDE 3: LOS 40 PROFESIONALES -->
+    <section class="slide" style="padding: 50px 70px;">
+      <span class="eyebrow reveal d1">Tripulación Seleccionada</span>
+      <h2 style="font-size: 44px; margin-top: 10px; margin-bottom: 6px; font-family: var(--font-display);" class="reveal d2">40 Profesionales + 20 Jóvenes</h2>
+      <p style="font-size: 20px; margin-bottom: 14px; font-family: var(--font-detail);" class="reveal d3">Cada profesional fue elegido por su rol esencial en la supervivencia y reconstrucción de la civilización humana.</p>
+      <div class="prof-grid reveal d4">
+        <div class="prof-card glass">
+          <h3>🩺 Medicina</h3>
+          <p>Cirujanos, enfermeros, dentistas, farmacéuticos y paramédicos para la salud a través de generaciones.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>⚙️ Ingeniería</h3>
+          <p>Mecánicos, eléctricos, aeroespaciales y de sistemas. Mantienen la nave operativa en todo momento.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>🔬 Ciencias</h3>
+          <p>Biólogos, químicos, físicos y astrónomos. Investigan y desarrollan soluciones para Terranova.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>🌱 Agricultura</h3>
+          <p>Agrónomos, veterinarios y botánicos. Producen alimentos y mantienen los ecosistemas a bordo.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>💻 Tecnología</h3>
+          <p>Programadores, ingenieros de IA y robótica. Operan los sistemas inteligentes de la nave.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>📚 Educación</h3>
+          <p>Profesores de ciencias, matemáticas e idiomas. Forman a las nuevas generaciones a bordo.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>🧠 Humanidades</h3>
+          <p>Psicólogos, sociólogos y artistas. Cohesión social y salud mental del grupo.</p>
+        </div>
+        <div class="prof-card glass">
+          <h3>🏗️ Construcción</h3>
+          <p>Arquitectos, constructores y soldadores. Edificarán la nueva civilización en el destino.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: LA NAVE -->
+    <section class="slide nave-slide">
+      <span class="eyebrow reveal d1">Especificaciones</span>
+      <h2 style="font-size: 52px; margin-top: 8px; margin-bottom: 8px;" class="reveal d2 glow-text">ARC-GURREN</h2>
+      <img src="https://t90171314597.p.clickup-attachments.com/t90171314597/e6a10909-1e59-4fa8-b39f-cebd66a0e427/generated-image-696f80b2-189c-4567-8f0e-79fb7cfdcce0.png?view=open" alt="Nave ARC-Gurren" class="ship-img reveal d3" />
+      <div class="nave-features reveal d4">
+        <div class="nave-feat">🏫 Escuelas</div>
+        <div class="nave-feat">🏥 Hospital</div>
+        <div class="nave-feat">🎛️ Control</div>
+        <div class="nave-feat">🛏️ Dormitorios</div>
+        <div class="nave-feat">🌿 Agricultura</div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: BANDERA -->
+    <section class="slide flag-slide">
+      <span class="eyebrow reveal d1" style="color: var(--accent-red);">Identidad</span>
+      <h2 style="font-size: 52px; margin-top: 10px;" class="reveal d2">Bandera del ARC-Gurren</h2>
+      <div class="flag-content reveal d3">
+        <img src="https://t90171314597.p.clickup-attachments.com/t90171314597/d562910b-2f7e-49df-80c3-c8f6da85e1a4/generated-image-cdc33be9-28f8-4b4e-8bc8-39bb59abcc59.png?view=open" alt="Bandera Team Dai-Gurren" class="flag-img" />
+        <div class="flag-text">
+          <h3>Nunca Nos Rendiremos</h3>
+          <p>La bandera del ARC-Gurren representa nuestra determinación inquebrantable. No importa qué obstáculos aparezcan en el camino, no importa cuán difícil sea la travesía: <strong>Team Dai-Gurren jamás retrocede.</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: CULTURAS -->
+    <section class="slide" style="padding: 60px 80px; background: radial-gradient(ellipse at 50% 50%, rgba(251, 191, 36, 0.04) 0%, transparent 50%), var(--bg-deep);">
+      <span class="eyebrow reveal d1" style="color: var(--accent-gold);">Legado Humano</span>
+      <h2 style="font-size: 48px; margin-top: 10px;" class="reveal d2">Culturas y Tradiciones Salvadas</h2>
+      <div class="culture-grid reveal d3">
+        <div class="culture-section glass">
+          <h3>🌍 5 Culturas Preservadas</h3>
+          <ul class="culture-list">
+            <li>Cultura Japonesa <span>Disciplina, honor y tecnología</span></li>
+            <li>Cultura Egipcia <span>Arquitectura y conocimiento ancestral</span></li>
+            <li>Cultura Indígena Americana <span>Conexión con la naturaleza</span></li>
+            <li>Cultura Griega <span>Filosofía, democracia y ciencia</span></li>
+            <li>Cultura India <span>Espiritualidad y matemáticas</span></li>
+          </ul>
+        </div>
+        <div class="culture-section glass">
+          <h3>🎭 5 Tradiciones Eternas</h3>
+          <ul class="culture-list">
+            <li>Música Universal <span>Sinfonías, ritmos, cantos ancestrales</span></li>
+            <li>Danza Ceremonial <span>Expresión del alma humana</span></li>
+            <li>Tradición Oral <span>Mitos, leyendas y cuentos</span></li>
+            <li>Arte Culinario <span>Recetas de todas las civilizaciones</span></li>
+            <li>Festivales Comunitarios <span>Celebración de la vida</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: DEFENSA -->
+    <section class="slide" style="padding: 55px 70px;">
+      <span class="eyebrow reveal d1">Sistemas de Defensa</span>
+      <h2 style="font-size: 46px; margin-top: 10px; margin-bottom: 6px;" class="reveal d2">Protección Espacial</h2>
+      <p style="font-size: 20px; font-family: var(--font-detail);" class="reveal d3">Múltiples capas de defensa protegen al ARC-Gurren contra basura espacial, asteroides y radiación.</p>
+      <div class="defense-grid reveal d4">
+        <div class="defense-card glass">
+          <div class="icon">🛡️</div>
+          <h3>Escudo Cuántico</h3>
+          <p>Campo de energía que desintegra micro-asteroides antes del impacto.</p>
+        </div>
+        <div class="defense-card glass">
+          <div class="icon">⚡</div>
+          <h3>Barrera del Núcleo</h3>
+          <p>Escudo electromagnético alimentado por el Núcleo Helios que desvía partículas.</p>
+        </div>
+        <div class="defense-card glass">
+          <div class="icon">🤖</div>
+          <h3>IA Predictiva</h3>
+          <p>Radar que detecta objetos a millones de km y traza rutas evasivas.</p>
+        </div>
+        <div class="defense-card glass">
+          <div class="icon">🔥</div>
+          <h3>Cañón de Plasma</h3>
+          <p>Destruye asteroides fragmentándolos en polvo inofensivo.</p>
+        </div>
+        <div class="defense-card glass">
+          <div class="icon">🚀</div>
+          <h3>Propulsión Evasiva</h3>
+          <p>Motores laterales de emergencia para maniobras rápidas.</p>
+        </div>
+        <div class="defense-card glass">
+          <div class="icon">🔄</div>
+          <h3>Nanobots</h3>
+          <p>Auto-reparación del casco en tiempo real ante daños menores.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: NÚCLEO HELIOS -->
+    <section class="slide nucleo-slide">
+      <div class="nucleo-orb"></div>
+      <span class="eyebrow reveal d1">Fuente de Energía</span>
+      <h2 class="reveal d2">NÚCLEO HELIOS</h2>
+      <p class="reveal d3">Millones de <strong>cristales cuánticos</strong> suspendidos en un campo magnético capturan la luz estelar a través de enormes alas metálicas. Los fotones se comprimen en una cámara donde ocurre la <strong>Resonancia Solar Infinita</strong>: cada fotón genera miles de partículas llamadas <span class="gold-text">heliones</span>, proporcionando energía prácticamente ilimitada para toda la travesía interestelar.</p>
+    </section>
+
+    <!-- SLIDE 9: PLAN DE VIAJE -->
+    <section class="slide" style="padding: 55px 70px;">
+      <span class="eyebrow reveal d1">Proyecto Horizonte</span>
+      <h2 style="font-size: 44px; margin-top: 10px; margin-bottom: 6px;" class="reveal d2">Plan de Viaje a Terranova</h2>
+      <p style="font-size: 20px; margin-bottom: 12px; font-family: var(--font-detail);" class="reveal d3">Destino: Planeta Terranova (1 año luz). Un mundo similar a la Tierra donde la humanidad renacerá.</p>
+      <div class="plan-phases reveal d4">
+        <div class="phase-card glass">
+          <div class="phase-num">Fase 01</div>
+          <h3>Recarga Solar</h3>
+          <p>La nave se posiciona cerca del Sol. El Núcleo Helios se carga al 100%. Prueba total de sistemas.</p>
+        </div>
+        <div class="phase-card glass">
+          <div class="phase-num">Fase 02</div>
+          <h3>Curvatura</h3>
+          <p>Se comprime el espacio delante y se expande detrás, creando un túnel espacial de alta velocidad.</p>
+        </div>
+        <div class="phase-card glass">
+          <div class="phase-num">Fase 03</div>
+          <h3>Aceleración</h3>
+          <p>Motores a máxima potencia. Escudos activos. IA calculando ruta óptima en tiempo real.</p>
+        </div>
+        <div class="phase-card glass">
+          <div class="phase-num">Fase 04</div>
+          <h3>Crucero</h3>
+          <p>Energía constante del Núcleo. Soporte vital activo. Robots de mantenimiento 24/7.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: AGUA -->
+    <section class="slide water-slide">
+      <div class="water-content">
+        <div class="water-orb reveal d1">
+          <span>Generador<br>Hidrocuántico<br>Infinito</span>
+        </div>
+        <div class="water-text">
+          <span class="eyebrow reveal d2">Recurso Vital</span>
+          <h2 class="reveal d3">Agua Para la Vida</h2>
+          <p class="reveal d4">El <strong>Generador Hidrocuántico Infinito</strong> capta partículas de hidrógeno y oxígeno dispersas en el espacio usando energía del Núcleo Helios. En el <strong>Condensador Molecular</strong>, se unen mediante campos cuánticos avanzados, produciendo agua pura para beber, higiene y agricultura.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: OBJETOS -->
+    <section class="slide" style="padding: 45px 55px;">
+      <span class="eyebrow reveal d1">Legado Personal</span>
+      <h2 style="font-size: 38px; margin-top: 8px; margin-bottom: 12px;" class="reveal d2">10 Objetos por Tripulante</h2>
+      <div class="objects-grid reveal d3">
+        <div class="member-card glass">
+          <h3>Mathias Constantines</h3>
+          <ol>
+            <li>Laptop cuántica</li>
+            <li>Biblioteca holográfica</li>
+            <li>Álbum familiar digital</li>
+            <li>Guitarra acústica</li>
+            <li>Colección de semillas</li>
+            <li>Reloj de su abuelo</li>
+            <li>Casco de realidad virtual</li>
+            <li>Mapa estelar antiguo</li>
+            <li>Diario de bitácora</li>
+            <li>Telescopio portátil</li>
+          </ol>
+        </div>
+        <div class="member-card glass">
+          <h3>Juan Parraga</h3>
+          <ol>
+            <li>Dron de exploración</li>
+            <li>Cámara fotográfica digital</li>
+            <li>Reproductor 10,000 canciones</li>
+            <li>Impresora 3D portátil</li>
+            <li>Kit de supervivencia</li>
+            <li>Diario de cuero</li>
+            <li>Binoculares tácticos</li>
+            <li>Radio solar</li>
+            <li>Brújula de su padre</li>
+            <li>Consola de videojuegos</li>
+          </ol>
+        </div>
+        <div class="member-card glass">
+          <h3>Elias Rodriguez</h3>
+          <ol>
+            <li>Tablet de arte digital</li>
+            <li>Asistente IA portátil</li>
+            <li>Juego de ajedrez</li>
+            <li>Enciclopedia digital</li>
+            <li>Microscopio compacto</li>
+            <li>Kit de laboratorio</li>
+            <li>Brújula del abuelo</li>
+            <li>Colección de vinilos</li>
+            <li>Kit de herramientas</li>
+            <li>Mapa estelar holográfico</li>
+          </ol>
+        </div>
+        <div class="member-card glass">
+          <h3>Alejandro Infante</h3>
+          <ol>
+            <li>Piano eléctrico plegable</li>
+            <li>Filmoteca digital</li>
+            <li>Equipo deportivo</li>
+            <li>Laptop de programación</li>
+            <li>Proyector portátil</li>
+            <li>Colección de comics</li>
+            <li>Navaja multiusos</li>
+            <li>Juegos de mesa</li>
+            <li>Smartwatch médico</li>
+            <li>Parlante bluetooth</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: CONTROL POBLACIONAL -->
+    <section class="slide pop-slide">
+      <span class="eyebrow reveal d1">Protocolo de Supervivencia</span>
+      <h2 style="font-size: 48px; margin-top: 10px; margin-bottom: 10px;" class="reveal d2">Control de Población</h2>
+      <p style="font-size: 22px; max-width: 850px; text-align: center; font-family: var(--font-detail);" class="reveal d3">Con 60 personas y recursos limitados, la reproducción se planifica rigurosamente para asegurar la supervivencia.</p>
+      <div class="pop-rules reveal d4">
+        <div class="pop-rule glass">
+          <div class="icon">👥</div>
+          <h3>Límite: 60</h3>
+          <p>Capacidad máxima fija. Un nacimiento solo se permite cuando hay una vacante.</p>
+        </div>
+        <div class="pop-rule glass">
+          <div class="icon">🧬</div>
+          <h3>Diversidad</h3>
+          <p>IA garantiza diversidad genética para evitar enfermedades hereditarias.</p>
+        </div>
+        <div class="pop-rule glass">
+          <div class="icon">📋</div>
+          <h3>Planificación</h3>
+          <p>Cada generación se adapta a las necesidades profesionales de la nave.</p>
+        </div>
+        <div class="pop-rule glass">
+          <div class="icon">🍽️</div>
+          <h3>Recursos</h3>
+          <p>La producción agrícola determina el número de personas sostenibles.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 13: TERRANOVA -->
+    <section class="slide final-slide">
+      <div class="planet-glow"></div>
+      <h2 class="reveal d1">Generaciones después...</h2>
+      <h1 class="reveal d2">TERRANOVA</h1>
+      <p class="reveal d3">Los descendientes del Team Dai-Gurren finalmente contemplan un nuevo amanecer. La nave ARC-Gurren, nuestro hogar entre las estrellas, cumplió su misión. La humanidad tiene un nuevo comienzo.</p>
+      <p class="team-name reveal d4">⭐ TEAM DAI-GURREN ⭐ NUNCA NOS RENDIMOS</p>
+    </section>
+
+    <script>
+      const canvas = document.getElementById('stars-canvas');
+      const ctx = canvas.getContext('2d');
+      let stars = [];
+      let w, h;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function createStars() {
+        stars = [];
+        for (let i = 0; i < 120; i++) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.8 + 0.3,
+            alpha: Math.random() * 0.6 + 0.1,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      let t = 0;
+      function animate() {
+        ctx.clearRect(0, 0, w, h);
+        t += 0.01;
+        stars.forEach(s => {
+          const twinkle = 0.5 + 0.5 * Math.sin(t * 3 + s.phase);
+          const alpha = s.alpha * twinkle;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(180, 210, 255, ${alpha})`;
+          ctx.fill();
+        });
+        requestAnimationFrame(animate);
+      }
+
+      resize();
+      createStars();
+      animate();
+      window.addEventListener('resize', () => { resize(); createStars(); });
+    </script>
+  </body>
+</html>
